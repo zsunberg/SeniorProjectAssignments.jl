@@ -3,6 +3,11 @@ uuid = "12c928f9-345a-4ed0-bd0a-0da1882392df"
 authors = ["Zachary Sunberg <zachary.sunberg@colorado.edu> and contributors"]
 version = "0.1.0"
 
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+
 [compat]
 julia = "1"
 
