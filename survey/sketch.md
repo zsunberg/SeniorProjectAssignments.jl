@@ -40,7 +40,9 @@ Please check the box below if you would like to be considered for the Project Ma
 
 ## 3. Project Preferences (required)
 
-Please indicate which projects you would prefer to work on. If you request assignment in a group, you MUST indicate the same ordering as the other group members. If you do not, the ordering provided by a random member of the group will be used for the entire group.
+Please indicate which projects you would prefer to work on.
+
+If you request assignment in a group, only one set of preferences will be used for the group, so please coordinate with the other group members. If the preferences of the group members do not match, a random member's preferences will be used.
 
 [NOTE TO JOSH: It would be cool if this was a drag-n-drop ordering]
 
