@@ -28,9 +28,9 @@ Teammate 2:
 
 In order to distribute expertise appropriately among teams, please indicate the fraction of your skills under each of the following categories (do not be afraid to put 0 for a category that you do not have expertise in):
 
-<input type="number" min="0" max="1" step="0.1"></input> **Hardware**: (e.g. designing structures, making drawings and parts)<br>
+<input type="number" min="0" max="1" step="0.1"></input> **Hardware**: (e.g. designing structures, making drawings and parts, thermodynamics, materials)<br>
 <input type="number" min="0" max="1" step="0.1"></input> **Software**: (e.g. writing code, designing software, processing data)<br>
-<input type="number" min="0" max="1" step="0.1"></input> **Electronics**: (e.g. designing printed circuit boards, working with batteries and power systems, soldering)
+<input type="number" min="0" max="1" step="0.1"></input> **Electronics**: (e.g. designing printed circuit boards, radio frequency engineering, mechatronics, batteries and power systems, soldering)
 
 ### 2b. Project Management
 
