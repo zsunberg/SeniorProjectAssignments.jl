@@ -8,16 +8,20 @@ export
     StudentData,
     ProjectData,
     IndexModel,
-    match
+    match,
+    process_survey,
+    process_projects
 
+# note for future: this should have just been stored in data frames
 struct StudentData
     id::String
     roles::NamedTuple
-    prefs::Vector{Symbol}
+    pm::Bool
+    prefs::Vector{Union{String,Missing}}
 end
 
 struct ProjectData
-    id::Symbol
+    id::String
     minroles::NamedTuple
     minsize::Int
     maxsize::Int
@@ -26,6 +30,8 @@ end
 struct IndexModel
     c::Matrix{Float64}        # c[i, j] is the cost for assigning group i to project j
     r::Matrix{Float64}        # r[k, i] is the amount of effort that group i contributes to role k
+    pm::Vector{Float64}       # pm[i] indicates the number of potential project managers in group i
+    s::Vector{Float64}        # s[i] is the size of group i
     minroles::Matrix{Float64} # minroles[k, j] is the minimum number of people needed for role k on project j
     minsizes::Vector{Float64} # minimum sizes for each project
     maxsizes::Vector{Float64} # maximum sizes for each project
@@ -33,7 +39,7 @@ end
 
 function IndexModel(students, projects, groups)
     c = calculate_costs(students, projects, groups)
-    r = calculate_role_fractions(students, projects, groups)
+    r, pm, s = calculate_role_fractions(students, projects, groups)
     roles = collect_roles(projects)
     minroles = zeros(length(roles), length(projects))
     for (k, role) in enumerate(roles)
@@ -44,7 +50,7 @@ function IndexModel(students, projects, groups)
     minsizes = [p.minsize for p in projects]
     maxsizes = [p.maxsize for p in projects]
 
-    return IndexModel(c, r, minroles, minsizes, maxsizes)
+    return IndexModel(c, r, pm, s, minroles, minsizes, maxsizes)
 end
 
 function match(students, projects, groups, optimizer=GLPK.Optimizer)
@@ -78,9 +84,15 @@ function create_model(m::IndexModel)
     end
 
     for j in 1:n_projects
+        # roles
         pr = m.r*x[:, j]
         @constraint(opt, pr .>= m.minroles[:, j])
-        @constraint(opt, m.minsizes[j] <= sum(pr) <= m.maxsizes[j])
+        # sizes
+        ps = m.s'*x[:, j]
+        @constraint(opt, m.minsizes[j] <= ps <= m.maxsizes[j])
+        # project managers
+        pms = m.pm'*x[:, j]
+        @constraint(opt, pms >= 1.0)
     end
 
     return opt
@@ -102,9 +114,18 @@ function calculate_costs(students, projects, groups)
 
     for (i, sd) in enumerate(students)
         @assert length(sd.prefs) == length(pinds)
+        missingcost = nothing
         for (r, p) in enumerate(sd.prefs)
             cost = 2.0^(logn*(r-1))
-            c[ginds[sd.id], pinds[p]] += cost
+            if ismissing(p) && isnothing(missingcost)
+                missingcost = cost
+            else
+                c[ginds[sd.id], pinds[p]] += cost
+            end
+        end
+        row = view(c, ginds[sd.id], :)
+        if sum(row.==0.0) > 0
+            row[row.==0.0] .= missingcost
         end
     end
 
@@ -121,6 +142,8 @@ function calculate_role_fractions(students, projects, groups)
     rinds = Dict(role => k for (k, role) in enumerate(roles))
 
     r = zeros(length(roles), n_groups)
+    pm = zeros(n_groups)
+    s = zeros(n_groups)
     
     for sd in students
         for (role, frac) in pairs(sd.roles)
@@ -128,9 +151,11 @@ function calculate_role_fractions(students, projects, groups)
                 r[rinds[role], ginds[sd.id]] += frac
             end
         end
+        pm[ginds[sd.id]] += sd.pm
+        s[ginds[sd.id]] += 1
     end
 
-    return r
+    return r, pm, s
 end
 
 function collect_roles(projects)
@@ -163,18 +188,20 @@ function interpret(x, students, projects, groups)
 
     assignments = DataFrame(id = String[],
                             project = String[],
-                            rank = Int[]
+                            rank = Union{Int, Missing}[]
                            )
 
     boolx = x .> 0
     for sd in students
         j = findfirst(boolx[ginds[sd.id], :])
         pd = projects[j]
-        rank = findfirst(isequal(pd.id), sd.prefs)
+        rank = something(findfirst(isequal(pd.id), sd.prefs), missing)
         line = (id=sd.id, project=string(pd.id), rank=rank)
         push!(assignments, line)
     end
     return assignments
 end
+
+include("data_processing.jl")
 
 end

@@ -4,7 +4,7 @@
 
 You may request assignment in groups of 2 or 3. Your group is guaranteed assignment to the same project. The other members of your group MUST also enter your name for the group to be valid.
 
-If you would like to request assignment as part of a group, please select the names of the other group members:
+If you would like to request assignment as part of a group, **please select the names of the other group members**:
 
 Teammate 1:
 <select name="t1">
@@ -36,15 +36,13 @@ In order to distribute expertise appropriately among teams, please indicate the 
 
 Please check the box below if you would like to be considered for the Project Manager (PM) position.
 
-<input type="checkbox"> I would like to be considered for a PM position.
+<input type="checkbox"> **I would like to be considered for a PM position.**
 
 ## 3. Project Preferences (required)
 
-Please indicate which projects you would prefer to work on.
+Please indicate which projects you would prefer to work on. If you request assignment in a group, only one set of preferences will be used for the group, so please coordinate with the other group members. If the preferences of the group members do not match, a random member's preferences will be used.
 
-If you request assignment in a group, only one set of preferences will be used for the group, so please coordinate with the other group members. If the preferences of the group members do not match, a random member's preferences will be used.
 
-[NOTE TO JOSH: It would be cool if this was a drag-n-drop ordering]
 
 1st Choice:
 <select name="p1">
