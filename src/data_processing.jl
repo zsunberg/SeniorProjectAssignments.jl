@@ -32,7 +32,9 @@ function process_survey(survey, pnames)
 
         if haskey(gmap, name)
             for n in group
-                if gmap[n] != gmap[name]
+                if !haskey(gmap, n)
+                    @warn("group disagreement: $name wanted group $(group), but $n was not assigned to $(groups[gmap[n]]).")
+                elseif gmap[n] != gmap[name]
                     @warn("group disagreement: $name wanted group $(group), but $n was already assigned to $(groups[gmap[n]]).")
                 end
             end
