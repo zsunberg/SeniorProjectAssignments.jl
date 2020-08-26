@@ -119,7 +119,7 @@ function calculate_costs(students, projects, groups)
             cost = 2.0^(logn*(r-1))
             if ismissing(p) && isnothing(missingcost)
                 missingcost = cost
-            else
+            elseif !ismissing(p)
                 c[ginds[sd.id], pinds[p]] += cost
             end
         end
