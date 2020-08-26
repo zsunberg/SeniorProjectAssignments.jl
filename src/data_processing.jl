@@ -24,7 +24,14 @@ function process_survey(survey, pnames; manual_singles=String[])
 
         tms = collect(map(teammate_to_name, skipmissing([s["Q1_1"], s["Q3_1"]])))
         # filter out strange numbers that appeared in the 011 survey
-        teammates[name] = filter(x->isnothing(tryparse(Int, x)), tms)
+        teammates[name] = filter(tms) do tmname
+            if isnothing(tryparse(Int, tmname)) && tmname != name
+                return true
+            else
+                @warn ("Ignoring teammate name $tmname for $name")
+                return false
+            end
+        end
 
         pm = !ismissing(s["Q6"])
 
@@ -71,7 +78,10 @@ function process_survey(survey, pnames; manual_singles=String[])
         end
         valid = true
         for tm in mates
-            if !(n in teammates[tm]) || haskey(gmap, tm)
+            if !haskey(teammates, tm)
+                @warn("Could not find teammates entry for $tm. Ignoring")
+                valid = false
+            elseif !(n in teammates[tm]) || haskey(gmap, tm)
                 valid = false
             end
         end
