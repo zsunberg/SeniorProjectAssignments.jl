@@ -1,3 +1,4 @@
+using Revise
 using SeniorProjectAssignments
 using DataFrames
 using CSV
@@ -14,4 +15,6 @@ projects = process_projects(project_dataframe)
 # students, groups = process_survey(survey_dataframe, pnames, manual_singles=manual_singles)
 students, groups = process_survey(survey_dataframe, pnames)
 
-match(students, projects, groups)
+sdf = convert(DataFrame, students)
+
+m = match(students, projects, groups)

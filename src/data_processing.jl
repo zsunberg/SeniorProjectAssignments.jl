@@ -27,9 +27,13 @@ function process_survey(survey, pnames; manual_singles=String[])
         pm = !ismissing(s["Q6"])
 
         # roles
-        roles = (hardware = s["Q4_1"],
-                 software = s["Q4_2"],
-                 electronics = s["Q4_3"])
+        roles = (
+                 electronics = s["Q4_3"],
+                 hardware = s["Q4_1"],
+                 software = s["Q4_2"]
+                )
+        # specialty = argmax(roles)
+        # roles = merge((;), [specialty=>1.0]) # roundabout way
         # floor anything <= 3
         roles = map(roles) do frac
             if ismissing(frac) || frac <= 3
@@ -82,3 +86,17 @@ function process_survey(survey, pnames; manual_singles=String[])
 end
 
 teammate_to_name(teammate) = join(reverse(split(teammate, '_')), ' ')
+
+function Base.convert(::Type{DataFrame}, sd::Vector{StudentData})
+    pairs = [:id => [s.id for s in sd],
+             :hardware => [get(s.roles, :hardware, 0.0) for s in sd],
+             :software => [get(s.roles, :software, 0.0) for s in sd],
+             :electronics => [get(s.roles, :electronics, 0.0) for s in sd],
+             :pm => [s.pm for s in sd]
+            ]
+
+    for j in 1:length(first(sd).prefs)
+        push!(pairs, Symbol(string("pref_", j)) => [s.prefs[j] for s in sd])
+    end
+    return DataFrame(pairs)
+end

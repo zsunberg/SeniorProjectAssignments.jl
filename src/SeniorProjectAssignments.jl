@@ -12,7 +12,6 @@ export
     process_survey,
     process_projects
 
-# note for future: this should have just been stored in data frames
 struct StudentData
     id::String
     roles::NamedTuple
