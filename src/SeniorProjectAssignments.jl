@@ -28,16 +28,17 @@ struct ProjectData
 end
 
 struct IndexModel
-    c::Matrix{Float64}        # c[i, j] is the cost for assigning group i to project j
-    r::Matrix{Float64}        # r[k, i] is the amount of effort that group i contributes to role k
-    pm::Vector{Float64}       # pm[i] indicates the number of potential project managers in group i
-    s::Vector{Float64}        # s[i] is the size of group i
-    minroles::Matrix{Float64} # minroles[k, j] is the minimum number of people needed for role k on project j
-    minsizes::Vector{Float64} # minimum sizes for each project
-    maxsizes::Vector{Float64} # maximum sizes for each project
+    c::Matrix{Float64}            # c[i, j] is the cost for assigning group i to project j
+    r::Matrix{Float64}            # r[k, i] is the amount of effort that group i contributes to role k
+    pm::Vector{Float64}           # pm[i] indicates the number of potential project managers in group i
+    s::Vector{Float64}            # s[i] is the size of group i
+    minroles::Matrix{Float64}     # minroles[k, j] is the minimum number of people needed for role k on project j
+    minsizes::Vector{Float64}     # minimum sizes for each project
+    maxsizes::Vector{Float64}     # maximum sizes for each project
+    force::Vector{Pair{Int, Int}} # i => j means we are forcing group i to be assigned to project j
 end
 
-function IndexModel(students, projects, groups)
+function IndexModel(students, projects, groups; force=[])
     c = calculate_costs(students, projects, groups)
     r, pm, s = calculate_role_fractions(students, projects, groups)
     roles = collect_roles(projects)
@@ -50,11 +51,17 @@ function IndexModel(students, projects, groups)
     minsizes = [p.minsize for p in projects]
     maxsizes = [p.maxsize for p in projects]
 
-    return IndexModel(c, r, pm, s, minroles, minsizes, maxsizes)
+    ginds = group_index_map(students, groups)
+    pinds = Dict(p.id => j for (j,p) in enumerate(projects))
+    force_indices = map(force) do pair
+        ginds[first(pair)] => pinds[last(pair)]
+    end
+
+    return IndexModel(c, r, pm, s, minroles, minsizes, maxsizes, force_indices)
 end
 
-function match(students, projects, groups, optimizer=GLPK.Optimizer)
-    opt = create_model(students, projects, groups)
+function match(students, projects, groups; optimizer=GLPK.Optimizer, force=[])
+    opt = create_model(students, projects, groups, force=force)
     set_optimizer(opt, optimizer)
     optimize!(opt)
     if termination_status(opt) != MOI.OPTIMAL
@@ -65,8 +72,10 @@ end
 
 function create_model(students::Vector{StudentData},
                       projects::Vector{ProjectData},
-                      groups::Vector)
-    return create_model(IndexModel(students, projects, groups))
+                      groups::Vector;
+                      kwargs...
+                     )
+    return create_model(IndexModel(students, projects, groups; kwargs...))
 end
 
 function create_model(m::IndexModel)
@@ -93,6 +102,10 @@ function create_model(m::IndexModel)
         # project managers
         pms = m.pm'*x[:, j]
         @constraint(opt, pms >= 1.0)
+    end
+
+    for pair in m.force
+        @constraint(opt, x[pair...] == 1)
     end
 
     return opt

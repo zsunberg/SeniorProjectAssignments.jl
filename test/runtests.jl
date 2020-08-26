@@ -35,11 +35,13 @@ projects = [
 groups = [["Alice", "Bob"]]
 @show match(students, projects, groups)
 
-survey_dataframe = CSV.read("../data/section012.csv", DataFrame, header=1, datarow=4)
-project_dataframe = CSV.read("../data/projects_011.csv", DataFrame)
+@show match(students, projects, [], force=["Bob"=>"Airplane"])
 
-projects = process_projects(project_dataframe)
-@show pnames = [p.id for p in projects]
-students, groups = process_survey(survey_dataframe, pnames)
+# survey_dataframe = CSV.read("../data/section012.csv", DataFrame, header=1, datarow=4)
+# project_dataframe = CSV.read("../data/projects_011.csv", DataFrame)
+# 
+# projects = process_projects(project_dataframe)
+# @show pnames = [p.id for p in projects]
+# students, groups = process_survey(survey_dataframe, pnames)
 
 end
