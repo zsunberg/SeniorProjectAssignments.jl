@@ -1,5 +1,5 @@
 # takes in clean dataframes, outputs students, projects, groups
-function process_projects(projects::DataFrame, min=9, max=12)
+function process_projects(projects::DataFrame; min=9, max=12)
     pdata = ProjectData[]
     for p in eachrow(projects)
         name = p["Sponsor"]*": "*p["Title"]
@@ -22,7 +22,9 @@ function process_survey(survey, pnames; manual_singles=String[])
     for s in eachrow(survey)
         name = string(s["RecipientFirstName"], ' ', filter(!isspace, s["RecipientLastName"]))
 
-        teammates[name] = collect(map(teammate_to_name, skipmissing([s["Q1_1"], s["Q3_1"]])))
+        tms = collect(map(teammate_to_name, skipmissing([s["Q1_1"], s["Q3_1"]])))
+        # filter out strange numbers that appeared in the 011 survey
+        teammates[name] = filter(x->isnothing(tryparse(Int, x)), tms)
 
         pm = !ismissing(s["Q6"])
 
@@ -64,7 +66,7 @@ function process_survey(survey, pnames; manual_singles=String[])
     groups = Vector{String}[]
     gmap = Dict{String, Int}()
     for (n, mates) in teammates
-        if haskey(gmap, n)
+        if haskey(gmap, n) || isempty(mates)
             continue
         end
         valid = true
@@ -79,6 +81,15 @@ function process_survey(survey, pnames; manual_singles=String[])
             for s in group
                 gmap[s] = length(groups)
             end
+        end
+    end
+
+    # force same prefs
+    for g in groups
+        selected = first(shuffle(g))
+        prefs = only(filter(s->s.id==selected, sdata)).prefs
+        for n in g
+            only(filter(s->s.id==n, sdata)).prefs[:] = prefs
         end
     end
 

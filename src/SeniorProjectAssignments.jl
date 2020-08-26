@@ -3,6 +3,7 @@ module SeniorProjectAssignments
 import GLPK
 using JuMP
 using DataFrames
+using Random: shuffle
 
 export
     StudentData,
@@ -187,7 +188,11 @@ function interpret(x, students, projects, groups)
 
     assignments = DataFrame(id = String[],
                             project = String[],
-                            rank = Union{Int, Missing}[]
+                            rank = Union{Int, Missing}[],
+                            hardware = Float64[],
+                            software = Float64[],
+                            electronics = Float64[],
+                            pm = Bool[]
                            )
 
     boolx = x .> 0
@@ -195,7 +200,7 @@ function interpret(x, students, projects, groups)
         j = findfirst(boolx[ginds[sd.id], :])
         pd = projects[j]
         rank = something(findfirst(isequal(pd.id), sd.prefs), missing)
-        line = (id=sd.id, project=string(pd.id), rank=rank)
+        line = merge((id=sd.id, project=string(pd.id), rank=rank, pm=sd.pm), sd.roles)
         push!(assignments, line)
     end
     return assignments
