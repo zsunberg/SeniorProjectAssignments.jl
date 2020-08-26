@@ -35,7 +35,7 @@ projects = [
 groups = [["Alice", "Bob"]]
 @show match(students, projects, groups)
 
-survey_dataframe = CSV.read("../data/Senior Projects Survey 011_August 24, 2020_19.09.csv", DataFrame, header=1, datarow=4)
+survey_dataframe = CSV.read("../data/section012.csv", DataFrame, header=1, datarow=4)
 project_dataframe = CSV.read("../data/projects_011.csv", DataFrame)
 
 projects = process_projects(project_dataframe)

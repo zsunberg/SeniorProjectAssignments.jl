@@ -17,35 +17,12 @@ function process_projects(projects::DataFrame, min=9, max=12)
 end
 
 function process_survey(survey, pnames; manual_singles=String[])
-    groups = Vector{String}[]
-    gmap = Dict{String, Int}()
     sdata = StudentData[]
+    teammates = Dict{String, Vector{String}}()
     for s in eachrow(survey)
-        name = string(s["RecipientFirstName"], ' ', s["RecipientLastName"])
+        name = string(s["RecipientFirstName"], ' ', filter(!isspace, s["RecipientLastName"]))
 
-        if name in manual_singles
-            push!(groups, [name])
-        else
-            group = [name]
-            for tm in skipmissing([s["Q1_1"], s["Q3_1"]])
-                push!(group, teammate_to_name(tm))
-            end
-
-            if haskey(gmap, name)
-                for n in group
-                    if !haskey(gmap, n)
-                        @warn("group disagreement: $name wanted group $(group), but $n was not assigned to $(groups[gmap[name]]).")
-                    elseif gmap[n] != gmap[name]
-                        @warn("group disagreement: $name wanted group $(group), but $n was already assigned to $(groups[gmap[n]]).")
-                    end
-                end
-            else
-                push!(groups, group)
-                for n in group
-                    gmap[n] = length(groups)
-                end
-            end
-        end
+        teammates[name] = collect(map(teammate_to_name, skipmissing([s["Q1_1"], s["Q3_1"]])))
 
         pm = !ismissing(s["Q6"])
 
@@ -78,6 +55,27 @@ function process_survey(survey, pnames; manual_singles=String[])
         end
 
         push!(sdata, StudentData(name, roles, pm, prefs))
+    end
+
+    groups = Vector{String}[]
+    gmap = Dict{String, Int}()
+    for (n, mates) in teammates
+        if haskey(gmap, n)
+            continue
+        end
+        valid = true
+        for tm in mates
+            if !(n in teammates[tm]) || haskey(gmap, tm)
+                valid = false
+            end
+        end
+        if valid
+            group = [n, teammates[n]...]
+            push!(groups, group)
+            for s in group
+                gmap[s] = length(groups)
+            end
+        end
     end
 
     return sdata, groups
