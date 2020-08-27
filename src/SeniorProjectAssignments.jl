@@ -4,6 +4,7 @@ import GLPK
 using JuMP
 using DataFrames
 using Random: shuffle
+using DataStructures: PriorityQueue, dequeue!
 
 export
     StudentData,
@@ -18,6 +19,7 @@ struct StudentData
     roles::NamedTuple
     pm::Bool
     prefs::Vector{Union{String,Missing}}
+    comment::Union{String, Missing}
 end
 
 struct ProjectData
@@ -205,7 +207,8 @@ function interpret(x, students, projects, groups)
                             hardware = Float64[],
                             software = Float64[],
                             electronics = Float64[],
-                            pm = Bool[]
+                            pm = Bool[],
+                            comment = Union{String,Missing}[]
                            )
 
     boolx = x .> 0
@@ -213,7 +216,9 @@ function interpret(x, students, projects, groups)
         j = findfirst(boolx[ginds[sd.id], :])
         pd = projects[j]
         rank = something(findfirst(isequal(pd.id), sd.prefs), missing)
-        line = merge((id=sd.id, project=string(pd.id), rank=rank, pm=sd.pm), sd.roles)
+        flatcomment = ismissing(sd.comment) ? sd.comment : replace(sd.comment, '\n' => "\\n")
+        roundedroles = map(frac->round(frac, digits=2), sd.roles)
+        line = merge((id=sd.id, project=string(pd.id), rank=rank, pm=sd.pm, comment=flatcomment), roundedroles)
         push!(assignments, line)
     end
     return assignments

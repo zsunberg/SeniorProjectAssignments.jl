@@ -16,7 +16,7 @@ function process_projects(projects::DataFrame; min=9, max=12)
     return pdata
 end
 
-function process_survey(survey, pnames; manual_singles=String[])
+function process_survey(survey, pnames; manual_singles=String[], map_roles=default_map_roles)
     sdata = StudentData[]
     teammates = Dict{String, Vector{String}}()
     for s in eachrow(survey)
@@ -36,38 +36,37 @@ function process_survey(survey, pnames; manual_singles=String[])
         pm = !ismissing(s["Q6"])
 
         # roles
-        roles = (
-                 electronics = s["Q4_3"],
+        roles = (electronics = s["Q4_3"],
                  hardware = s["Q4_1"],
-                 software = s["Q4_2"]
-                )
-        # specialty = argmax(roles)
-        # roles = merge((;), [specialty=>1.0]) # roundabout way
-        # floor anything <= 3
-        roles = map(roles) do frac
-            if ismissing(frac) || frac <= 3
-                return 0
-            else
-                return frac
-            end
-        end
-        # normalize
-        roles = map(frac->frac/sum(roles), roles)
+                 software = s["Q4_2"])
+        roles = map_roles(roles)
 
         @assert length(pnames) <= 9 # can only handle single digit numbers
         prefs = Vector{Union{Missing, String}}(missing, length(pnames))
+        multiples = PriorityQueue()
         for (i, p) in enumerate(pnames)
             rank = passmissing(x->parse(Int, first(x)))(s[string("Q9_", i)])
-            if !ismissing(rank)
+            if ismissing(rank)
+                @info("$name gave no rank for project $p")
+            else
                 if !ismissing(prefs[rank])
-                    @warn("Double entry for rank $rank ($name, $p). Ignoring!")
+                    @info("Double entry for rank $rank ($name, $p). Moving!")
+                    multiples[p] = rank
                 else
                     prefs[rank] = p
                 end
             end
         end
+        for r in 1:length(prefs)
+            if ismissing(prefs[r])
+                if !isempty(multiples)
+                    prefs[r] = dequeue!(multiples)
+                end
+            end
+        end
+        @assert isempty(multiples)
 
-        push!(sdata, StudentData(name, roles, pm, prefs))
+        push!(sdata, StudentData(name, roles, pm, prefs, s["Q10"]))
     end
 
     groups = Vector{String}[]
@@ -81,7 +80,9 @@ function process_survey(survey, pnames; manual_singles=String[])
             if !haskey(teammates, tm)
                 @warn("Could not find teammates entry for $tm. Ignoring")
                 valid = false
-            elseif !(n in teammates[tm]) || haskey(gmap, tm)
+            # elseif !(n in teammates[tm]) || haskey(gmap, tm)
+            elseif !(n in teammates[tm])
+                @warn("Invalid group: $n => $tm was not reciprocated.")
                 valid = false
             end
         end
@@ -97,13 +98,39 @@ function process_survey(survey, pnames; manual_singles=String[])
     # force same prefs
     for g in groups
         selected = first(shuffle(g))
-        prefs = only(filter(s->s.id==selected, sdata)).prefs
+        # selected = first(g)
+        # selected = last(g)
+        prefs = copy(only(filter(s->s.id==selected, sdata)).prefs)
         for n in g
-            only(filter(s->s.id==n, sdata)).prefs[:] = prefs
+            otherprefs = only(filter(s->s.id==n, sdata)).prefs
+            if any(skipmissing(otherprefs .!= prefs))
+                @info("Preferences for $n don't match $selected in group $g.")
+            end
+            otherprefs[:] = prefs
         end
     end
 
     return sdata, groups
+end
+
+function default_map_roles(roles)
+    # specialty = argmax(roles)
+    # roles = merge((;), [specialty=>1.0]) # roundabout way
+    # floor anything <= 3
+    roles = map(roles) do frac
+        if ismissing(frac) || frac <= 3
+            return 0
+        else
+            return frac
+        end
+    end
+
+    if sum(roles) == 0.0
+        return roles
+    else
+        # normalize
+        return map(frac->frac/sum(roles), roles)
+    end
 end
 
 teammate_to_name(teammate) = join(reverse(split(teammate, '_')), ' ')
